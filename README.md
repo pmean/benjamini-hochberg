@@ -1,6 +1,7 @@
-# repository-title-goes-here
+# benjamini-hochberg
 
 This is a single file stand-alone application using R Markdown.
+It requires the mutoss library.
 
 It was run and tested using RStudio and the knitr package.
 
