@@ -5,21 +5,87 @@ date: "Wednesday, July 27, 2016"
 output: html_document
 ---
 
-Preliminary data indicated that the coefficient of variation for coherence
-is approximately 0.75. With a sample size of 30 patients per group, we 
-would have 80% power for detecting a doubling or halving of coherence
-between the two groups, even after adjustment for multiple comparisons.
+I was asked to help plan a research study that involved measuring
+coherence between different regions of the brain both in subjects
+with a particular condition and in a control population. This study
+looks at 53 different regions, so there are 53*54/2 = 1,431 different
+pairs of regions to measure the coherence of. So what this study will
+involve, after the data is collected is running 1,431 two sample
+t-tests. The researcher proposed getting data on 30 patients and
+30 controls.
+
+Preliminary data on 9 patients with a reasonably similar condition and
+9 controls and the coherence measured across the same 1,431 pairs of
+brain regions. I calculated the coefficient of variation for each
+of these 1,431 pairs, both for the 9 treatment patients and the 9 
+control patients. There's a range of values, but the average
+coefficient of variation is roughly 60%.
+
+So the big question is whether 30 treatment patients and 30 control
+patients will be a sufficient sample size.
+
+Now my description is leaving out a few details, but I want to outline
+my general approach to justifying the sample size.
+
+If there was just a single t-test instead of 1,431 of them, the
+justification of the sample size would proceed fairly easily. 
+
+The only slight trick is that the variation in coherence is best
+characterized not by a standard deviation but by a coefficient
+of variation. In this setting, it makes sense to look for 
+relative changes in means, such as a doubling or a halving.
+It turns out that if you want a power calculation for detecting
+a doubling or halving, and you assume that the coefficient of
+variation is constant across the two groups, it doesn't matter
+if you are doubling or halving a mean of 10 or a mean of
+10,000.
+
+```{r specify_means_and_standard_deviations}
+mu1 <- 0.1
+mu2 <- 2*mu1
+cv <- 0.65
+s1 <- mu1*cv
+s2 <- mu2*cv
+n1 <- 30
+n2 <- 30
+```
+
+Notice that the standard deviation is going to be twice as large
+in the second group than in the first group because the mean
+is twice as large in the second group. If you look at the help
+file for the power.t.test function in R, it doesn't have a 
+way to specify two different standard deviations. But there's
+an easy enough work around--calculate the pooled standard
+deviation. This might not work if you have unbalanced
+sample sizes (e.g., 40 patients in the treatment arm and 20
+in the control arm). But in our example, thankfully, the sample
+sizes are balanced. Just remember that even with balanced data
+the pooled standard deviation is not the average of the two
+standard deviations. You have to do all your work with the 
+variances and then square root is when you are done.
+
+```{r calculate_pooled_standard_deviation}
+sp <- sqrt(((n1-1)*s1^2 + (n2-1)*s2^2) / (n1+n2-2))
+```
+
+With standard deviations of `r s1` and `r s2` and balanced
+sample sizes, the pooled standard deviation is
+`r round(sp, 3)`.
+
+```{r compute_simple_power}
+power.t.test(n=30, delta=mu2-mu1, sd=sp, sig.level=0.05)
+```
 
 ```{r bh_correction}
 library("mutoss")
-n_double <- 100
+n_double <- 100 
 n_single <- 1431 - n_double
 cv <- 0.6
 mu1 <- 0.1
 mu2 <- 2*mu1
 s1 <- cv*mu1
 s2 <- cv*mu2
-n_simulations <- 100
+n_simulations <- 15
 tp_bf <- rep(99, n_simulations)
 fp_bf <- tp_bf
 tp_bh <- tp_bf
@@ -32,7 +98,7 @@ for (i in 1:n_simulations) {
   simulation_gp1  <- cbind(simulation_gp1a, simulation_gp1b)
   simulation_gp2  <- cbind(simulation_gp2a, simulation_gp2b)
   pv <- rep(99, 1431)
-  for (j in 1:1431){
+  for (j in 1:1431) {
     pv[j] <- t.test(simulation_gp1[, j], simulation_gp2[, j])$p.value  
   }
   bf <- pv*1431

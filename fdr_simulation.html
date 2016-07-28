@@ -67,17 +67,44 @@ img {
 </div>
 
 
-<p>Preliminary data indicated that the coefficient of variation for coherence is approximately 0.75. With a sample size of 30 patients per group, we would have 80% power for detecting a doubling or halving of coherence between the two groups, even after adjustment for multiple comparisons.</p>
+<p>I was asked to help plan a research study that involved measuring coherence between different regions of the brain both in subjects with a particular condition and in a control population. This study looks at 53 different regions, so there are 53*54/2 = 1,431 different pairs of regions to measure the coherence of. So what this study will involve, after the data is collected is running 1,431 two sample t-tests. The researcher proposed getting data on 30 patients and 30 controls.</p>
+<p>Preliminary data on 9 patients with a reasonably similar condition and 9 controls and the coherence measured across the same 1,431 pairs of brain regions. I calculated the coefficient of variation for each of these 1,431 pairs, both for the 9 treatment patients and the 9 control patients. There’s a range of values, but the average coefficient of variation is roughly 60%.</p>
+<p>So the big question is whether 30 treatment patients and 30 control patients will be a sufficient sample size.</p>
+<p>Now my description is leaving out a few details, but I want to outline my general approach to justifying the sample size.</p>
+<p>If there was just a single t-test instead of 1,431 of them, the justification of the sample size would proceed fairly easily.</p>
+<p>The only slight trick is that the variation in coherence is best characterized not by a standard deviation but by a coefficient of variation. In this setting, it makes sense to look for relative changes in means, such as a doubling or a halving. It turns out that if you want a power calculation for detecting a doubling or halving, and you assume that the coefficient of variation is constant across the two groups, it doesn’t matter if you are doubling or halving a mean of 10 or a mean of 10,000.</p>
+<pre class="r"><code>mu1 &lt;- 0.1
+mu2 &lt;- 2*mu1
+cv &lt;- 0.65
+s1 &lt;- mu1*cv
+s2 &lt;- mu2*cv
+n1 &lt;- 30
+n2 &lt;- 30</code></pre>
+<p>Notice that the standard deviation is going to be twice as large in the second group than in the first group because the mean is twice as large in the second group. If you look at the help file for the power.t.test function in R, it doesn’t have a way to specify two different standard deviations. But there’s an easy enough work around–calculate the pooled standard deviation. This might not work if you have unbalanced sample sizes (e.g., 40 patients in the treatment arm and 20 in the control arm). But in our example, thankfully, the sample sizes are balanced. Just remember that even with balanced data the pooled standard deviation is not the average of the two standard deviations. You have to do all your work with the variances and then square root is when you are done.</p>
+<pre class="r"><code>sp &lt;- sqrt(((n1-1)*s1^2 + (n2-1)*s2^2) / (n1+n2-2))</code></pre>
+<p>With standard deviations of 0.065 and 0.13 and balanced sample sizes, the pooled standard deviation is 0.103.</p>
+<pre class="r"><code>power.t.test(n=30, delta=mu2-mu1, sd=sp, sig.level=0.05)</code></pre>
+<pre><code>## 
+##      Two-sample t test power calculation 
+## 
+##               n = 30
+##           delta = 0.1
+##              sd = 0.102774
+##       sig.level = 0.05
+##           power = 0.9595407
+##     alternative = two.sided
+## 
+## NOTE: n is number in *each* group</code></pre>
 <pre class="r"><code>library(&quot;mutoss&quot;)</code></pre>
 <pre><code>## Loading required package: mvtnorm</code></pre>
-<pre class="r"><code>n_double &lt;- 200
+<pre class="r"><code>n_double &lt;- 100
 n_single &lt;- 1431 - n_double
 cv &lt;- 0.6
 mu1 &lt;- 0.1
 mu2 &lt;- 2*mu1
 s1 &lt;- cv*mu1
 s2 &lt;- cv*mu2
-n_simulations &lt;- 15
+n_simulations &lt;- 100
 tp_bf &lt;- rep(99, n_simulations)
 fp_bf &lt;- tp_bf
 tp_bh &lt;- tp_bf
@@ -90,7 +117,7 @@ for (i in 1:n_simulations) {
   simulation_gp1  &lt;- cbind(simulation_gp1a, simulation_gp1b)
   simulation_gp2  &lt;- cbind(simulation_gp2a, simulation_gp2b)
   pv &lt;- rep(99, 1431)
-  for (j in 1:1431){
+  for (j in 1:1431) {
     pv[j] &lt;- t.test(simulation_gp1[, j], simulation_gp2[, j])$p.value  
   }
   bf &lt;- pv*1431
@@ -102,16 +129,16 @@ for (i in 1:n_simulations) {
 }
 summary(tp_bf)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   58.00   63.00   65.00   65.27   68.00   75.00</code></pre>
+##   16.00   29.00   33.00   32.49   36.00   42.00</code></pre>
 <pre class="r"><code>summary(fp_bf)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-## 0.00000 0.00000 0.00000 0.06667 0.00000 1.00000</code></pre>
+##    0.00    0.00    0.00    0.04    0.00    1.00</code></pre>
 <pre class="r"><code>summary(tp_bh)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   167.0   173.0   176.0   175.9   178.5   183.0</code></pre>
+##   70.00   80.00   82.00   81.76   84.00   92.00</code></pre>
 <pre class="r"><code>summary(fp_bh)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   4.000   6.500   8.000   8.067  10.000  14.000</code></pre>
+##    0.00    2.00    4.00    3.84    5.00    9.00</code></pre>
 <p>Save everything for later use.</p>
 <pre class="r"><code>save.image(file=&quot;fdr_simulation.RData&quot;)</code></pre>
 
