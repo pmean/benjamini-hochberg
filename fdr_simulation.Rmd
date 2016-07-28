@@ -12,14 +12,14 @@ between the two groups, even after adjustment for multiple comparisons.
 
 ```{r bh_correction}
 library("mutoss")
-n_double <- 200
+n_double <- 100
 n_single <- 1431 - n_double
 cv <- 0.6
 mu1 <- 0.1
 mu2 <- 2*mu1
 s1 <- cv*mu1
 s2 <- cv*mu2
-n_simulations <- 15
+n_simulations <- 100
 tp_bf <- rep(99, n_simulations)
 fp_bf <- tp_bf
 tp_bh <- tp_bf
@@ -46,4 +46,10 @@ summary(tp_bf)
 summary(fp_bf)
 summary(tp_bh)
 summary(fp_bh)
+```
+
+Save everything for later use.
+
+```{r save_everything}
+save.image(file="fdr_simulation.RData")
 ```
